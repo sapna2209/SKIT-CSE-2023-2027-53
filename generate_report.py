@@ -6,17 +6,21 @@ import os
 import sys
 import html
 import matplotlib.pyplot as plt
-
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-# -------------------------------------------------------------
+ 
+# ---------------------------------------------------------------------------
 # CONFIGURATION: Institution & Department Details
-# -------------------------------------------------------------
+# ---------------------------------------------------------------------------
+ 
 COLLEGE_NAME = "Swami Keshvanand Institute of Technology,Management & Gramothan, Jaipur"
 DEPARTMENT_NAME = "Department of Computer Science & Engineering"
-# -------------------------------------------------------------
+ 
+# ---------------------------------------------------------------------------
+ 
+ 
 def get_repo_info():
     """Extracts the exact repository name and branch reliably in GitHub Codespaces."""
     repo_name = "Project-Repository"
@@ -35,6 +39,8 @@ def get_repo_info():
     except Exception:
         pass
     return repo_name, branch_name
+ 
+ 
 def get_git_metrics(interval="weekly"):
     """
     Parses Git commit logs.
@@ -42,7 +48,8 @@ def get_git_metrics(interval="weekly"):
     """
     today = datetime.date.today()
     git_args = ['git', 'log', '--no-merges', '--pretty=format:COMMIT|||%h|||%an|||%ad|||%s', '--date=short', '--numstat']
-if interval == "weekly":
+ 
+    if interval == "weekly":
         since_date = (today - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
         git_args.append(f"--since={since_date}")
         scope_title = f"Last 7 Days (Since {since_date})"
@@ -52,22 +59,24 @@ if interval == "weekly":
         scope_title = f"Last 30 Days (Since {since_date})"
     else:
         scope_title = "Complete Project Lifecycle (All Commits)"
+ 
     try:
         raw_output = subprocess.check_output(git_args, encoding='utf-8', errors='replace')
     except subprocess.CalledProcessError:
         print("[ERROR] Git command failed. Please ensure you are inside a Git repository.")
         return None, None, None, scope_title
+ 
     students = defaultdict(lambda: {"commits": 0, "added": 0, "deleted": 0, "active_days": set()})
     timeline_activity = defaultdict(lambda: defaultdict(int))
     student_logs = defaultdict(list)
     current_author = None
     current_date_str = None
-
+ 
     for line in raw_output.strip().split('\n'):
         line = line.strip()
         if not line:
             continue
-            
+ 
         if line.startswith('COMMIT|||'):
             parts = line.split('|||')
             if len(parts) >= 5:
@@ -77,20 +86,19 @@ if interval == "weekly":
                 msg = parts[4].strip()
             else:
                 continue
-                
+ 
             # --- IGNORE AUTOMATED BOTS ---
             if "bot" in author.lower() or "github-actions" in author.lower():
                 current_author = None
                 continue
-            # -----------------------------
-            
+ 
             current_author = author
             current_date_str = date_str
-            
+ 
             students[current_author]["commits"] += 1
             students[current_author]["active_days"].add(current_date_str)
             student_logs[current_author].append((date_str, sha, msg))
-            
+ 
             try:
                 dt = datetime.datetime.strptime(current_date_str, "%Y-%m-%d").date()
                 if interval == "weekly":
@@ -102,20 +110,22 @@ if interval == "weekly":
                 timeline_activity[period_key][current_author] += 1
             except Exception:
                 pass
-
+ 
         elif current_author and not line.startswith('COMMIT|||'):
             parts = line.split()
             if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
                 students[current_author]["added"] += int(parts[0])
                 students[current_author]["deleted"] += int(parts[1])
-
+ 
     return students, timeline_activity, student_logs, scope_title
+ 
+ 
 def create_charts(students, timeline_activity, interval):
     """Generates visual workload and trend charts."""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 3.8))
     authors = list(students.keys())
     periods = sorted(timeline_activity.keys())
-
+ 
     # 1. Timeline Line Chart
     if periods and authors:
         for author in authors:
@@ -128,7 +138,7 @@ def create_charts(students, timeline_activity, interval):
         ax1.legend(fontsize=8)
     else:
         ax1.text(0.5, 0.5, "No commits found in this interval", ha='center', va='center')
-
+ 
     # 2. Net LOC Bar Chart
     if authors:
         net_loc = [students[a]["added"] - students[a]["deleted"] for a in authors]
@@ -139,23 +149,23 @@ def create_charts(students, timeline_activity, interval):
         ax2.grid(axis='y', linestyle='--', alpha=0.5)
     else:
         ax2.text(0.5, 0.5, "No LOC changes recorded", ha='center', va='center')
-
+ 
     plt.tight_layout()
     img_buffer = io.BytesIO()
     plt.savefig(img_buffer, format='png', dpi=200)
     plt.close()
     img_buffer.seek(0)
     return Image(img_buffer, width=500, height=170)
-
+ 
+ 
 def generate_pdf(interval="weekly"):
     repo_name, branch_name = get_repo_info()
     students, timeline_activity, student_logs, scope_title = get_git_metrics(interval)
-
     if students is None:
         return
-
+ 
     date_stamp = datetime.date.today().strftime("%Y-%m-%d")
-    
+ 
     if interval == "weekly":
         report_title = "Weekly Progress Report (Form-3)"
         doc_name = f"{repo_name}_Weekly_Progress_Report_Form-3_{date_stamp}.pdf"
@@ -165,7 +175,7 @@ def generate_pdf(interval="weekly"):
     else:
         report_title = "Final Project Evaluation Report"
         doc_name = f"{repo_name}_Final_Report_{date_stamp}.pdf"
-
+ 
     doc = SimpleDocTemplate(
         doc_name,
         pagesize=letter,
@@ -174,9 +184,10 @@ def generate_pdf(interval="weekly"):
         topMargin=30,
         bottomMargin=30
     )
-
+ 
     styles = getSampleStyleSheet()
-college_style = ParagraphStyle(
+ 
+    college_style = ParagraphStyle(
         'CollegeStyle', parent=styles['Heading1'],
         fontSize=13.5, leading=17, textColor=colors.HexColor("#0F172A"), alignment=1, spaceAfter=2
     )
@@ -220,23 +231,28 @@ college_style = ParagraphStyle(
         'SigBlockStyle', parent=styles['Normal'],
         fontSize=9, leading=15, textColor=colors.HexColor("#0F172A"), alignment=0
     )
-
+ 
     story = []
-
+ 
     # 1. Header with College & Department Name and Form-3 Title
     story.append(Paragraph(f"<b>{html.escape(COLLEGE_NAME)}</b>", college_style))
     story.append(Paragraph(f"<b>{html.escape(DEPARTMENT_NAME)}</b>", dept_style))
     story.append(Paragraph(f"<u><b>{report_title}</b></u>", title_style))
     story.append(Spacer(1, 3))
-
+ 
     # 2. Metadata (Repo, Branch, Scope, Date)
-    story.append(Paragraph(f"<b>Project Repository:</b> <font color='#2563EB'><b>{html.escape(repo_name)}</b></font> &nbsp;|&nbsp; <b>Branch:</b> <code>{html.escape(branch_name)}</code>", repo_style))
-    story.append(Paragraph(f"<b>Evaluation Window:</b> {scope_title} &nbsp;|&nbsp; <b>Generated On:</b> {datetime.date.today().strftime('%B %d, %Y')}", meta_style))
-
+    story.append(Paragraph(
+        f"<b>Project Repository:</b> <font color='#2563EB'><b>{html.escape(repo_name)}</b></font> "
+        f"&nbsp;|&nbsp; <b>Branch:</b> <code>{html.escape(branch_name)}</code>", repo_style))
+    story.append(Paragraph(
+        f"<b>Evaluation Window:</b> {scope_title} &nbsp;|&nbsp; "
+        f"<b>Generated On:</b> {datetime.date.today().strftime('%B %d, %Y')}", meta_style))
+ 
     # 3. Individual Summary Table
     story.append(Paragraph("1. Individual Contribution Breakdown", section_style))
     total_commits = sum(data["commits"] for data in students.values())
     table_data = [["Student Name", "Commits (%)", "Lines Added", "Lines Deleted", "Net LOC", "Active Days"]]
+ 
     if students:
         for name, data in students.items():
             pct = (data["commits"] / total_commits * 100) if total_commits > 0 else 0
@@ -251,7 +267,7 @@ college_style = ParagraphStyle(
             ])
     else:
         table_data.append(["No commits found in this period. Run with 'final' to see all commits.", "-", "-", "-", "-", "-"])
-
+ 
     table = Table(table_data, colWidths=[120, 80, 80, 80, 80, 100])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1E293B")),
@@ -267,13 +283,13 @@ college_style = ParagraphStyle(
     ]))
     story.append(table)
     story.append(Spacer(1, 6))
-
+ 
     # 4. Visual Charts
     story.append(Paragraph("2. Visual Trends & Volume", section_style))
     chart_image = create_charts(students, timeline_activity, interval)
     story.append(chart_image)
     story.append(Spacer(1, 6))
-
+ 
     # 5. Detailed Commit Logs per Student WITH Vertically Merged Mentor Marks
     story.append(Paragraph(f"3. Detailed Commit Logs & Mentor Evaluation ({interval.capitalize()})", section_style))
     if not student_logs:
@@ -281,10 +297,11 @@ college_style = ParagraphStyle(
     else:
         for student_name, logs in student_logs.items():
             student_section = []
-            student_section.append(Paragraph(f"<b>Student:</b> {html.escape(student_name)} — <i>{len(logs)} commit(s)</i>", sub_section_style))
-            
+            student_section.append(Paragraph(
+                f"<b>Student:</b> {html.escape(student_name)} &mdash; <i>{len(logs)} commit(s)</i>", sub_section_style))
+ 
             log_table_data = [["Date", "Hash", "Commit Message", "Mentor Marks (/10)"]]
-            
+ 
             # Place the clean marking line in the first row
             first_date, first_sha, first_msg = logs[0]
             safe_msg = html.escape(first_msg) if first_msg else "(No commit message)"
@@ -294,7 +311,7 @@ college_style = ParagraphStyle(
                 Paragraph(safe_msg, msg_style),
                 Paragraph("<b>_____ / 10</b>", marks_style)
             ])
-            
+ 
             # Subsequent commit rows have blank placeholder for merged cell
             for date_val, sha_val, msg_val in logs[1:]:
                 safe_msg = html.escape(msg_val) if msg_val else "(No commit message)"
@@ -304,10 +321,10 @@ college_style = ParagraphStyle(
                     Paragraph(safe_msg, msg_style),
                     ""
                 ])
-            
+ 
             num_rows = len(log_table_data)
             log_table = Table(log_table_data, colWidths=[65, 50, 335, 90])
-            
+ 
             t_style = [
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#475569")),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -319,33 +336,33 @@ college_style = ParagraphStyle(
                 ('TOPPADDING', (0, 0), (-1, -1), 2.5),
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
                 ('ROWBACKGROUNDS', (0, 1), (2, -1), [colors.white, colors.HexColor("#F8FAFC")]),
-                ('SPAN', (3, 1), (3, num_rows - 1)),              # Vertically merge mentor marks column
-                ('VALIGN', (3, 1), (3, num_rows - 1), 'MIDDLE'),     # Vertically center the marks line
-                ('BACKGROUND', (3, 1), (3, num_rows - 1), colors.HexColor("#FEF3C7")), # Accent for marks area
+                ('SPAN', (3, 1), (3, num_rows - 1)),
+                ('VALIGN', (3, 1), (3, num_rows - 1), 'MIDDLE'),
+                ('BACKGROUND', (3, 1), (3, num_rows - 1), colors.HexColor("#FEF3C7")),
             ]
-            
+ 
             log_table.setStyle(TableStyle(t_style))
             student_section.append(log_table)
             student_section.append(Spacer(1, 5))
             story.append(KeepTogether(student_section))
-
+ 
     # 6. Symmetrical Signatures
     story.append(Spacer(1, 16))
-    
+ 
     mentor_cell = [
-        Paragraph("<b>Name:</b> ___________________________", sig_block_style),
+        Paragraph("<b>Name:</b> ________________________", sig_block_style),
         Paragraph("<b>Designation:</b> Project Mentor", sig_block_style),
         Spacer(1, 6),
-        Paragraph("<b>Signature:</b> ________________________", sig_block_style),
+        Paragraph("<b>Signature:</b> ______________________", sig_block_style),
     ]
-    
+ 
     coordinator_cell = [
-        Paragraph("<b>Name:</b> ___________________________", sig_block_style),
+        Paragraph("<b>Name:</b> ________________________", sig_block_style),
         Paragraph("<b>Designation:</b> Lab Coordinator", sig_block_style),
         Spacer(1, 6),
-        Paragraph("<b>Signature:</b> ________________________", sig_block_style),
+        Paragraph("<b>Signature:</b> ______________________", sig_block_style),
     ]
-
+ 
     sig_table = Table([[mentor_cell, coordinator_cell]], colWidths=[270, 270])
     sig_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -355,13 +372,14 @@ college_style = ParagraphStyle(
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ('TOPPADDING', (0, 0), (-1, -1), 0),
     ]))
-    
+ 
     story.append(KeepTogether(sig_table))
-
     doc.build(story)
     print(f"\n[SUCCESS] Generated: {doc_name}")
     print(f" -> Found {len(students)} student(s) and {total_commits} total commits.")
-
+ 
+ 
 if __name__ == "__main__":
     chosen_interval = sys.argv[1].lower() if len(sys.argv) > 1 else "weekly"
     generate_pdf(chosen_interval)
+ 
