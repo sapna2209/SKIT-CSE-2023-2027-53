@@ -1,0 +1,53 @@
+# Dataset
+
+## Source
+
+This dataset was built by combining multiple pothole datasets from
+[Roboflow Universe](https://universe.roboflow.com/indian-institute-of-technology-madras-xamot/pothole-detection-huf2x) and [KAGGLE](https://www.kaggle.com/datasets/anggadwisunarto/potholes-detection-yolov8), consolidated and
+refined for training a YOLOv8 object detection model.
+
+- Roboflow dataset link: **[https://app.roboflow.com/sanyam-singh/smart-pothole-detection-due2d/browse?queryText=&pageSize=50&startingIndex=0&browseQuery=true]**
+
+## Preparation process
+
+- **Merged** images from multiple public pothole datasets (Kaggle and
+  Roboflow Universe) into a single unified dataset
+- **Removed duplicate images** to avoid data leakage between train/val/test
+  splits and reduce redundant training signal
+- **Removed blurry / low-quality images** that would not provide a clear,
+  learnable visual pattern for the detector
+- **Manually annotated** all images with bounding boxes around potholes
+  using the Roboflow annotation tool, following a consistent labeling
+  standard (tight box around the visible pothole edge; ambiguous cases
+  such as shadows, wet patches, and tar repairs excluded)
+- Final dataset exported in **YOLOv8 format** (images + label `.txt` files
+  + `data.yaml`)
+
+## Class
+
+| Class | Description |
+|---|---|
+| `pothole` | Visible road surface damage/cavity |
+
+## Usage
+
+The dataset is downloaded directly from Roboflow into the training
+environment (Google Colab) rather than stored in this repository, to
+keep the repo lightweight. See [`training/`](../training) for the
+download + training script.
+
+```python
+!pip install roboflow
+
+from roboflow import Roboflow
+rf = Roboflow(api_key="7pMaRVVNOSPO7lpdq9HU")
+project = rf.workspace("sanyam-singh").project("smart-pothole-detection-due2d")
+version = project.version(1)
+dataset = version.download("yolov8")
+                
+```
+
+## Notes
+
+- Dataset version and image counts are tracked on the Roboflow project
+  page (linked above) for full reproducibility.
