@@ -1,0 +1,89 @@
+# Dataset Analysis — Version 2
+
+## Source
+
+The resulting cleaned dataset is available as(new):
+
+- **Pothole Detection Clean — Version 2:**  
+  https://app.roboflow.com/sanyam-singh/pothole-detection-clean/browse?queryText=&pageSize=100&startingIndex=0&browseQuery=true
+
+
+Version 2 of the pothole dataset was created by combining and cleaning two
+existing datasets from the same Roboflow workspace:
+
+- **New Pothole Detection dataset(old):**  
+  https://app.roboflow.com/sanyam-singh/new-pothole-detection-qs9u1/browse?queryText=&pageSize=100&startingIndex=0&browseQuery=true
+
+- **Smart Pothole Detection dataset(old):**  
+  https://app.roboflow.com/sanyam-singh/smart-pothole-detection-due2d/train
+
+The dataset was prepared for training and evaluating a YOLOv8 pothole
+object-detection model.
+
+## Preparation Process
+
+The Version 2 dataset was created using the following process:
+
+- **Combined** images from the `new-pothole-detection-qs9u1` and
+  `smart-pothole-detection-due2d` datasets.
+- **Removed duplicate images** to reduce redundant training samples and help
+  prevent data leakage across the training, validation, and test splits.
+- **Removed blurry images** that did not contain sufficiently clear visual
+  information for reliable model learning.
+- **Removed poor-quality / bad images** that were unsuitable for pothole
+  detection training.
+- **Reviewed and cleaned the resulting dataset** to improve the overall
+  quality and consistency of the training data.
+- The final dataset is maintained in Roboflow and can be exported in
+  **YOLOv8 format** for model training.
+
+## Dataset Statistics
+
+The final Version 2 dataset contains **20,894 images**.
+
+| Class Name | Total Count | Training Count | Validation Count | Test Count |
+|---|---:|---:|---:|---:|
+| `pothole` | 20,894 | 13,364 | 4,933 | 2,597 |
+
+### Split Distribution
+
+| Split | Image Count | Percentage |
+|---|---:|---:|
+| Training | 13,364 | 64.0% |
+| Validation | 4,933 | 23.6% |
+| Test | 2,597 | 12.4% |
+| **Total** | **20,894** | **100.0%** |
+
+The dataset therefore uses approximately a **64% / 23.6% / 12.4%**
+training, validation, and test split.
+
+## Class
+
+| Class | Description |
+|---|---|
+| `pothole` | Visible road surface damage/cavity |
+
+The dataset contains a single object-detection class: `pothole`.
+
+## Usage
+
+The dataset is hosted on Roboflow rather than being stored directly in this
+repository, keeping the GitHub repository lightweight.
+
+For YOLOv8 training, the dataset can be downloaded from the Roboflow project
+using the Roboflow Python package. API keys should **not** be committed to
+GitHub; use an environment variable or another secure secret-management
+method instead.
+
+Example:
+
+```python
+!pip install roboflow
+
+from roboflow import Roboflow
+import os
+
+rf = Roboflow(api_key=os.environ["ROBOFLOW_API_KEY"])
+project = rf.workspace("sanyam-singh").project("pothole-detection-clean")
+version = project.version(1)
+dataset = version.download("yolov8")
