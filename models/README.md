@@ -1,11 +1,3 @@
-Yes. We should **keep Experiment 1 and the old Experiment 2 information exactly as you wrote it**, and add the **final 200-epoch results as the updated/final result of Experiment 2**.
-
-One important correction: your current final test set is **1,019 images**, because we removed the one incorrectly formatted annotation. So I would not write 1,020 as the final evaluated count.
-
-Here is the updated version you can directly replace your current section with:
-
----
-
 # Model Training Results
 
 ## YOLOv8 Pothole Detection
