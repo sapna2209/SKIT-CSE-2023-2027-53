@@ -8,20 +8,16 @@ from ultralytics import YOLO
 # --------------------------------------------------
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
 
-MODEL_PATH = os.path.join(BASE_DIR, "best.pt")
-VIDEO_PATH = os.path.join(BASE_DIR, "sample_video.mp4")
-OUTPUT_PATH = os.path.join(BASE_DIR, "pothole_detected_video.mp4")
+MODEL_PATH = os.path.join(PROJECT_ROOT, "best.pt")
+VIDEO_PATH = os.path.join(PROJECT_ROOT, "sample_video.mp4")
+OUTPUT_PATH = os.path.join(PROJECT_ROOT, "pothole_detected_video.mp4")
 
-DATABASE_DIR = os.path.join(BASE_DIR, "database")
+DATABASE_DIR = os.path.join(PROJECT_ROOT, "database")
 
-CONFIDENCE_THRESHOLD = 0.25
-
-# Allow Python to import db_manager.py from database/
 sys.path.insert(0, DATABASE_DIR)
-
 from db_manager import DatabaseManager
-
 
 def main():
 
