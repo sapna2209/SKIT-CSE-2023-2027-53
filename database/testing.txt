@@ -1,0 +1,225 @@
+# Smart Pothole Detection System – Database Integration
+
+## 1. Overview
+
+This module manages database operations for the Smart Pothole Detection System. It uses SQLite to store video metadata, pothole detection results, road segment information, and GPS coordinates.
+
+The database module is designed to receive detection results from the video detection pipeline, store them in the database, and retrieve the saved records for verification and further analysis.
+
+## 2. Project Files
+
+```text
+database/
+├── create_db.py
+├── db_manager.py
+├── schema.sql
+├── test_insert.py
+├── potholes.db
+└── README.md
+```
+
+| File | Description |
+|---|---|
+| `create_db.py` | Creates and initializes the SQLite database using the SQL schema. |
+| `db_manager.py` | Manages video records, detection insertion, batch insertion, and retrieval. |
+| `schema.sql` | Defines database tables, relationships, constraints, and indexes. |
+| `test_insert.py` | Tests database insertion, YOLO-style detection results, confidence filtering, and validation. |
+| `potholes.db` | SQLite database file generated during initialization. |
+| `README.md` | Documents the database module and its usage. |
+
+## 3. Technologies Used
+
+- **Python 3** – Database operations and integration.
+- **SQLite3** – Storage and management of detection records.
+- **SQL** – Table definitions, relationships, and constraints.
+- **YOLOv8** – Object detection output used by the database integration.
+
+## 4. Previous Week's Work
+
+The following tasks were completed as part of the database module development:
+
+- Designed the SQL schema for video metadata, pothole detections, road segments, and GPS points.
+- Created the SQLite database initialization script in `create_db.py`.
+- Implemented `DatabaseManager` in `db_manager.py` for database operations.
+- Developed functions to insert video metadata and individual detection records.
+- Implemented batch insertion of multiple detections using `executemany()`.
+- Added support for saving bounding boxes and confidence scores from YOLOv8 detection results.
+- Implemented detection retrieval and counting functions.
+- Added validation for confidence scores, bounding boxes, and database foreign-key relationships.
+- Created `test_insert.py` to test database insertion and data validation.
+
+## 5. Database Schema
+
+The database contains four main tables.
+
+### 5.1 `videos`
+
+Stores metadata about uploaded videos, including filename, FPS, total frames, duration, and recording start time.
+
+### 5.2 `detections`
+
+Stores pothole detection results associated with individual video frames.
+
+| Column | Description |
+|---|---|
+| `detection_id` | Unique identifier for each detection. |
+| `video_id` | ID of the video associated with the detection. |
+| `frame_number` | Frame in which the pothole was detected. |
+| `video_time_sec` | Timestamp of the frame in seconds. |
+| `x_min`, `y_min` | Top-left bounding box coordinates. |
+| `x_max`, `y_max` | Bottom-right bounding box coordinates. |
+| `bbox_area_ratio` | Bounding box area relative to the frame area. |
+| `confidence` | Model confidence score between 0 and 1. |
+| `frame_image_path` | Optional path to the saved frame image. |
+| `latitude`, `longitude` | Optional GPS coordinates. |
+| `segment_id` | Optional associated road segment ID. |
+| `detected_at` | Timestamp when the database record is created. |
+
+### 5.3 `road_segments`
+
+Stores road segment information, GPS coordinates, pothole counts, and road condition scores.
+
+### 5.4 `gps_points`
+
+Stores GPS coordinates associated with video timestamps.
+
+## 6. This Week's Work: End-to-End Integration Testing
+
+**Objective:** Test the complete data flow from video detection output to the SQLite database and verify that the detection records are stored correctly.
+
+### Tasks
+
+1. Connect the video detection pipeline to `DatabaseManager`.
+2. Pass detection results from the video processing pipeline to the database insertion functions.
+3. Store the video metadata and corresponding detection results.
+4. Verify that frame numbers, bounding box coordinates, confidence scores, and video timestamps are saved correctly.
+5. Retrieve the stored detection records using `fetch_detections()`.
+6. Check the number of saved detections using `count_detections()`.
+7. Test the integration with frames containing detections and frames without detections.
+8. Verify that invalid detection data is rejected and valid records are preserved.
+
+### Expected Data Flow
+
+```text
+Input Video
+    |
+    v
+Video Detection Pipeline
+    |
+    v
+YOLO Detection Results
+    |
+    v
+DatabaseManager
+    |
+    v
+SQLite Database
+(potholes.db)
+    |
+    v
+Retrieve and Verify Records
+```
+
+## 7. Running the Database Tests
+
+### Step 1: Create the database
+
+Ensure `create_db.py` and `schema.sql` are in the same directory.
+
+Run:
+
+```bash
+python create_db.py
+```
+
+The script initializes the database using the schema.
+
+### Step 2: Run the existing insertion tests
+
+Run:
+
+```bash
+python test_insert.py
+```
+
+The test script uses a temporary database and checks:
+
+- Single detection insertion.
+- Insertion of multiple YOLO-style detections.
+- Correct calculation of video timestamps and bounding box area ratios.
+- Filtering of low-confidence detections.
+- Rejection of invalid bounding boxes and confidence scores.
+- Rejection of detections referencing a nonexistent video.
+
+### Step 3: Verify the stored records
+
+The following example can be used after inserting detection records:
+
+```python
+from db_manager import DatabaseManager
+
+db = DatabaseManager()
+
+video_id = 1
+
+print("Total detections:", db.count_detections(video_id))
+
+for detection in db.fetch_detections(video_id):
+    print(detection)
+```
+
+**Note:** Replace `1` with an existing `video_id` in your database. The example reads from the default `potholes.db` file.
+
+### Step 4: Test the actual detection pipeline
+
+The end-to-end test should run the video detection pipeline and pass its actual detection results to the database.
+
+For a YOLOv8 result, the existing method can be called as follows:
+
+```python
+saved = db.insert_from_yolo_result(
+    video_id=video_id,
+    frame_number=frame_number,
+    fps=fps,
+    result=result,
+    min_conf=0.25
+)
+
+print("Detections saved:", saved)
+```
+
+Here, `result` is a YOLOv8 Results object, and `frame_number` and `fps` should come from the video processing pipeline.
+
+This is an example integration call; it must be placed in the appropriate frame-processing loop of the actual detection script.
+
+## 8. Expected Results
+
+Successful integration should demonstrate that:
+
+- Video metadata is stored in the `videos` table.
+- Detection results are inserted into the `detections` table.
+- Bounding box coordinates and confidence scores match the detection output.
+- Video timestamps are calculated using the frame number and FPS.
+- The retrieved record count matches the number of detections saved.
+- Frames without detections do not create unnecessary detection records.
+- Invalid data and nonexistent video references are rejected.
+
+## 9. Notes
+
+- `create_db.py` creates the database structure but does not automatically run the video detection pipeline.
+- `db_manager.py` provides database operations but must be called by the detection pipeline for end-to-end integration.
+- `test_insert.py` uses simulated YOLO-style results; it does not, by itself, verify integration with the actual video detection script.
+- The actual end-to-end integration should be tested separately using the real detection output.
+- Existing database records are preserved when the schema uses `CREATE TABLE IF NOT EXISTS`.
+
+## 10. Future Improvements
+
+- Integrate database insertion directly into the video detection processing loop.
+- Associate GPS coordinates with detected potholes.
+- Generate road condition reports from stored detections.
+- Support querying detections by video, timestamp, and road segment.
+- Add automated integration tests for the complete video-to-database workflow.
+
+## Author
+
+Smart Pothole Detection System – Database and Video Detection Integration
