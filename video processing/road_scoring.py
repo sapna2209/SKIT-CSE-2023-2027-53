@@ -1,8 +1,15 @@
 """
 road_scoring.py
 
-Sprint 2 - Week 13
-Initial image-based road-condition scoring module.
+Sprint 2 - Week 12
+Road-condition scoring calculation (count, size and confidence -> score).
+
+Formula (per road segment, over unique potholes i):
+    count severity = min(sum(conf_i) / reference_count, 1) * 100
+    size severity  = min(confidence-weighted mean(area_i) / reference_area, 1) * 100
+    road score     = 0.5 * count severity + 0.5 * size severity
+Confidence is used twice: low-confidence detections are filtered out,
+and the remaining ones are weighted by their confidence.
 
 Important:
 - Input records must represent UNIQUE potholes, not every frame detection.
@@ -48,16 +55,46 @@ def filter_detections(detections, confidence_threshold=CONFIDENCE_THRESHOLD):
 
     return valid_detections
 
-def calculate_count_severity(detections, reference_count=REFERENCE_POTHOLE_COUNT):
-    weighted = sum(float(d["confidence"]) for d in detections)
-    return min(weighted / reference_count, 1.0) * 100
 
-def calculate_size_severity(detections, reference_average_area=REFERENCE_AVERAGE_AREA_RATIO):
-    total_conf = sum(float(d["confidence"]) for d in detections)
-    if total_conf == 0:
+def calculate_count_severity(
+    detections,
+    reference_count=REFERENCE_POTHOLE_COUNT
+):
+    """Calculate confidence-weighted count severity on a scale of 0 to 100."""
+    if reference_count <= 0:
+        raise ValueError("reference_count must be greater than zero")
+
+    weighted_count = sum(
+        float(detection["confidence"])
+        for detection in detections
+    )
+
+    return min(weighted_count / reference_count, 1.0) * 100
+
+
+def calculate_size_severity(
+    detections,
+    reference_average_area=REFERENCE_AVERAGE_AREA_RATIO
+):
+    """Calculate size severity using the confidence-weighted average box area."""
+    if reference_average_area <= 0:
+        raise ValueError("reference_average_area must be greater than zero")
+
+    total_confidence = sum(
+        float(detection["confidence"])
+        for detection in detections
+    )
+
+    if total_confidence == 0:
         return 0.0
-    avg_area = sum(float(d["confidence"]) * float(d["bbox_area_ratio"]) for d in detections) / total_conf
-    return min(avg_area / reference_average_area, 1.0) * 100
+
+    average_area = sum(
+        float(detection["confidence"]) * float(detection["bbox_area_ratio"])
+        for detection in detections
+    ) / total_confidence
+
+    return min(average_area / reference_average_area, 1.0) * 100
+
 
 def get_road_condition(score):
     """Convert a severity score into a condition category."""
@@ -94,7 +131,10 @@ def calculate_road_score(
 
     pothole_count = len(valid_detections)
 
-    count_severity = calculate_count_severity(valid_detections, reference_count)
+    count_severity = calculate_count_severity(
+        valid_detections,
+        reference_count
+    )
 
     size_severity = calculate_size_severity(
         valid_detections,

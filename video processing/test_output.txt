@@ -1,0 +1,57 @@
+======================================================================
+TEST 1: Sample scenarios
+======================================================================
+Scenario                           Count    Size   Score  Condition
+No potholes                          0.0     0.0     0.0  Excellent
+PASS  No potholes (expected 0.0, Excellent)
+All below confidence threshold       0.0     0.0     0.0  Excellent
+PASS  All below confidence threshold (expected 0.0, Excellent)
+Few small potholes                  18.0    25.0    21.5  Good
+PASS  Few small potholes (expected 21.5, Good)
+Several medium potholes             40.0    50.0    45.0  Moderate
+PASS  Several medium potholes (expected 45.0, Moderate)
+Many medium-large potholes          68.0    75.0    71.5  Poor
+PASS  Many medium-large potholes (expected 71.5, Poor)
+Severe damage                      100.0   100.0   100.0  Very Poor
+PASS  Severe damage (expected 100.0, Very Poor)
+Confidence exactly 0.25 kept         2.5   100.0   51.25  Moderate
+PASS  Confidence exactly 0.25 kept (expected 51.25, Moderate)
+
+======================================================================
+TEST 2: Confidence weighting
+======================================================================
+PASS  Higher confidence gives a higher score (58.5 > 42.0)
+
+======================================================================
+TEST 3: Score grows with count and size
+======================================================================
+PASS  More potholes -> higher score (49.0 > 33.0)
+PASS  Larger potholes -> higher score (74.0 > 49.0)
+
+======================================================================
+TEST 4: Score always stays between 0 and 100
+======================================================================
+PASS  500 random inputs stay within 0-100 
+
+======================================================================
+TEST 5: Condition band boundaries
+======================================================================
+PASS  score 0 -> Excellent 
+PASS  score 20 -> Excellent 
+PASS  score 20.1 -> Good 
+PASS  score 40 -> Good 
+PASS  score 60 -> Moderate 
+PASS  score 80 -> Poor 
+PASS  score 80.1 -> Very Poor 
+PASS  score 100 -> Very Poor 
+
+======================================================================
+TEST 6: Invalid input is rejected
+======================================================================
+PASS  confidence above 1 
+PASS  negative area 
+PASS  threshold above 1 
+
+======================================================================
+RESULT: 22 passed, 0 failed
+======================================================================
